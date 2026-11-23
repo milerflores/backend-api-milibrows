@@ -1,0 +1,57 @@
+# Dependencias
+/vendor
+/node_modules
+
+# Variables de entorno y credenciales
+.env
+.env.*
+!.env.example
+/auth.json
+/storage/*.key
+
+# Datos locales de prueba, archivos subidos y SQLite residual
+/database/*.sqlite
+/database/*.sqlite-journal
+/storage/app/private/*
+!/storage/app/private/.gitignore
+/storage/app/public/*
+!/storage/app/public/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+/storage/pail
+/public/storage
+
+# Compilación y cachés
+/public/build
+/public/hot
+/public/fonts-manifest.dev.json
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+/.phpunit.cache
+.phpunit.result.cache
+*.log
+
+# Carpeta temporal, documentación histórica y herramientas locales
+/tmp/
+/docs/*
+!/docs/openapi.yaml
+_ide_helper.php
+_ide_helper_models.php
+.phpactor.json
+Homestead.json
+Homestead.yaml
+
+# Editores, agentes y sistema operativo
+AGENTS.md
+CLAUDE.md
+/.vscode
+/.idea
+/.nova
+/.zed
+/.cursor
+/.codex
+/.claude
+/.windsurf
+/.agent
+.DS_Store
+Thumbs.db

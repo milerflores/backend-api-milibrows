@@ -1,0 +1,482 @@
+// MiLibrows: esquema físico vigente, 20/11/2026. Sin datos de usuarios.
+Project MiLibrows {
+  database_type: 'MySQL'
+}
+
+Table asignaciones_insumos {
+  id "bigint unsigned" [not null, pk, increment]
+  id_empleado "bigint unsigned" [not null]
+  id_insumo "bigint unsigned" [not null]
+  cantidad_entregada "int unsigned" [not null]
+  fecha_entrega "datetime" [not null]
+  fecha_agotamiento "datetime" [null]
+  estado "varchar(255)" [not null]
+  indexes {
+    (id_empleado) [name: 'asignaciones_insumos_id_empleado_foreign']
+    (id_insumo) [name: 'asignaciones_insumos_id_insumo_foreign']
+  }
+}
+
+Table cache {
+  key "varchar(255)" [not null, pk]
+  value "mediumtext" [not null]
+  expiration "bigint" [not null]
+  indexes {
+    (expiration) [name: 'cache_expiration_index']
+  }
+}
+
+Table cache_locks {
+  key "varchar(255)" [not null, pk]
+  owner "varchar(255)" [not null]
+  expiration "bigint" [not null]
+  indexes {
+    (expiration) [name: 'cache_locks_expiration_index']
+  }
+}
+
+Table categorias_inventario {
+  id "bigint unsigned" [not null, pk, increment]
+  nombre "varchar(255)" [not null]
+}
+
+Table citas {
+  id "bigint unsigned" [not null, pk, increment]
+  id_cliente "bigint unsigned" [not null]
+  id_usuario_creador "bigint unsigned" [not null]
+  fecha_finalizacion "datetime" [null]
+  origen "varchar(255)" [not null]
+  numero_revision "int unsigned" [not null]
+  motivo_cancelacion "text" [null]
+  fecha "date" [not null]
+  estado "enum('confirmada','completada','cancelada','no_asistio')" [not null]
+  fecha_creacion "timestamp" [null]
+  fecha_actualizacion "timestamp" [null]
+  indexes {
+    (fecha, estado) [name: 'citas_fecha_estado']
+    (id_cliente) [name: 'citas_id_cliente_foreign']
+    (id_usuario_creador) [name: 'citas_id_usuario_creador_foreign']
+  }
+}
+
+Table clientes {
+  id "bigint unsigned" [not null, pk, increment]
+  id_persona "bigint unsigned" [not null]
+  preferencias "text" [null]
+  activo "tinyint(1)" [not null]
+  fecha_creacion "timestamp" [null]
+  fecha_actualizacion "timestamp" [null]
+  indexes {
+    (id_persona) [unique, name: 'clientes_id_persona_unique']
+  }
+}
+
+Table cobros {
+  id "bigint unsigned" [not null, pk, increment]
+  id_cita "bigint unsigned" [not null]
+  id_metodo_pago "bigint unsigned" [not null]
+  id_usuario_creador "bigint unsigned" [not null]
+  importe "decimal(12,2)" [not null]
+  fecha_cobro "datetime" [not null]
+  referencia_pago "varchar(255)" [null]
+  estado "varchar(255)" [not null]
+  indexes {
+    (id_cita) [name: 'cobros_id_cita_index']
+    (id_metodo_pago) [name: 'cobros_id_metodo_pago_foreign']
+    (id_usuario_creador) [name: 'cobros_id_usuario_creador_foreign']
+  }
+}
+
+Table codigos_restablecimiento {
+  correo "varchar(255)" [not null, pk]
+  codigo "varchar(255)" [not null]
+  fecha_creacion "timestamp" [null]
+}
+
+Table configuracion_estudio {
+  id "bigint unsigned" [not null, pk, increment]
+  nombre_estudio "varchar(255)" [not null]
+  canal_notificacion "varchar(255)" [null]
+  anticipacion_recordatorio_min "int unsigned" [not null]
+  monto_por_punto "decimal(12,2)" [not null]
+}
+
+Table descuentos_manuales_cita {
+  id_servicio_cita "bigint unsigned" [not null, pk]
+  id_motivo_descuento "bigint unsigned" [null]
+  id_usuario "bigint unsigned" [not null]
+  monto "decimal(12,2)" [not null]
+  nota "text" [null]
+  fecha_creacion "timestamp" [not null]
+  indexes {
+    (id_motivo_descuento) [name: 'descuentos_manuales_motivo_foreign']
+    (id_usuario) [name: 'descuentos_manuales_usuario_foreign']
+  }
+}
+
+Table empleados {
+  id "bigint unsigned" [not null, pk, increment]
+  id_usuario "bigint unsigned" [not null]
+  cargo "varchar(255)" [not null]
+  admite_reservas "tinyint(1)" [not null]
+  activo "tinyint(1)" [not null]
+  fecha_creacion "timestamp" [null]
+  fecha_actualizacion "timestamp" [null]
+  indexes {
+    (id_usuario) [unique, name: 'empleados_id_usuario_unique']
+  }
+}
+
+Table failed_jobs {
+  id "bigint unsigned" [not null, pk, increment]
+  uuid "varchar(255)" [not null]
+  connection "varchar(255)" [not null]
+  queue "varchar(255)" [not null]
+  payload "longtext" [not null]
+  exception "longtext" [not null]
+  failed_at "timestamp" [not null]
+  indexes {
+    (connection, queue, failed_at) [name: 'failed_jobs_connection_queue_failed_at_index']
+    (uuid) [unique, name: 'failed_jobs_uuid_unique']
+  }
+}
+
+Table historial_cita {
+  id "bigint unsigned" [not null, pk, increment]
+  id_cita "bigint unsigned" [not null]
+  id_usuario_responsable "bigint unsigned" [not null]
+  numero_revision "int unsigned" [not null]
+  tipo_cambio "varchar(255)" [not null]
+  detalle_cambios "json" [not null]
+  motivo "text" [null]
+  fecha_creacion "timestamp" [not null]
+  indexes {
+    (id_cita, numero_revision) [unique, name: 'eventos_cita_id_cita_revision_unique']
+    (id_usuario_responsable) [name: 'eventos_cita_id_usuario_responsable_foreign']
+    (id, id_cita, numero_revision) [unique, name: 'historial_identidad_revision_unica']
+  }
+}
+
+Table horarios_estudio {
+  id "bigint unsigned" [not null, pk, increment]
+  id_estudio "bigint unsigned" [not null]
+  dia_semana "tinyint unsigned" [not null]
+  hora_inicio "time" [not null]
+  hora_fin "time" [not null]
+  indexes {
+    (id_estudio) [name: 'horarios_estudio_id_estudio_foreign']
+  }
+}
+
+Table insumos {
+  id "bigint unsigned" [not null, pk, increment]
+  id_categoria "bigint unsigned" [not null]
+  nombre "varchar(255)" [not null]
+  existencias_actuales "int unsigned" [not null]
+  existencias_minimas "int unsigned" [not null]
+  activo "tinyint(1)" [not null]
+  fecha_creacion "timestamp" [null]
+  fecha_actualizacion "timestamp" [null]
+  indexes {
+    (id_categoria) [name: 'insumos_id_categoria_foreign']
+  }
+}
+
+Table job_batches {
+  id "varchar(255)" [not null, pk]
+  name "varchar(255)" [not null]
+  total_jobs "int" [not null]
+  pending_jobs "int" [not null]
+  failed_jobs "int" [not null]
+  failed_job_ids "longtext" [not null]
+  options "mediumtext" [null]
+  cancelled_at "int" [null]
+  created_at "int" [not null]
+  finished_at "int" [null]
+}
+
+Table jobs {
+  id "bigint unsigned" [not null, pk, increment]
+  queue "varchar(255)" [not null]
+  payload "longtext" [not null]
+  attempts "smallint unsigned" [not null]
+  reserved_at "int unsigned" [null]
+  available_at "int unsigned" [not null]
+  created_at "int unsigned" [not null]
+  indexes {
+    (queue) [name: 'jobs_queue_index']
+  }
+}
+
+Table jornadas_empleados {
+  id "bigint unsigned" [not null, pk, increment]
+  id_empleado "bigint unsigned" [not null]
+  dia_semana "tinyint unsigned" [not null]
+  hora_inicio "time" [not null]
+  hora_fin "time" [not null]
+  indexes {
+    (id_empleado) [name: 'jornadas_empleados_id_empleado_foreign']
+  }
+}
+
+Table metodos_pago {
+  id "bigint unsigned" [not null, pk, increment]
+  codigo "varchar(255)" [not null]
+  nombre "varchar(255)" [not null]
+  activo "tinyint(1)" [not null]
+  indexes {
+    (codigo) [unique, name: 'metodos_pago_codigo_unique']
+  }
+}
+
+Table migrations {
+  id "int unsigned" [not null, pk, increment]
+  migration "varchar(255)" [not null]
+  batch "int" [not null]
+}
+
+Table motivos_descuento {
+  id "bigint unsigned" [not null, pk, increment]
+  nombre "varchar(255)" [not null]
+  activo "tinyint(1)" [not null]
+}
+
+Table movimientos_inventario {
+  id "bigint unsigned" [not null, pk, increment]
+  id_insumo "bigint unsigned" [not null]
+  id_usuario_creador "bigint unsigned" [not null]
+  id_asignacion "bigint unsigned" [null]
+  tipo_movimiento "enum('entrada','salida','devolucion','ajuste')" [not null]
+  variacion_cantidad "int" [not null]
+  existencias_antes "int" [not null]
+  existencias_despues "int" [not null]
+  motivo "text" [not null]
+  fecha_creacion "timestamp" [not null]
+  indexes {
+    (id_asignacion) [unique, name: 'movimientos_inventario_id_asignacion_unique']
+    (id_insumo) [name: 'movimientos_inventario_id_insumo_foreign']
+    (id_usuario_creador) [name: 'movimientos_inventario_id_usuario_creador_foreign']
+  }
+}
+
+Table movimientos_puntos {
+  id "bigint unsigned" [not null, pk, increment]
+  id_cliente "bigint unsigned" [not null]
+  id_cobro "bigint unsigned" [null]
+  id_usuario_creador "bigint unsigned" [not null]
+  tipo "varchar(255)" [not null]
+  puntos "int" [not null]
+  motivo "text" [null]
+  fecha_creacion "timestamp" [not null]
+  indexes {
+    (id_cliente, fecha_creacion) [name: 'movimientos_puntos_cliente_fecha']
+    (id_cobro) [unique, name: 'movimientos_puntos_cobro_origen_unico']
+    (id_usuario_creador) [name: 'movimientos_puntos_id_usuario_creador_foreign']
+  }
+}
+
+Table niveles_fidelizacion {
+  id "bigint unsigned" [not null, pk, increment]
+  codigo "varchar(255)" [not null]
+  nombre "varchar(255)" [not null]
+  orden "tinyint unsigned" [not null]
+  puntos_minimos "int unsigned" [not null]
+  porcentaje_descuento "decimal(5,2)" [not null]
+  activo "tinyint(1)" [not null]
+  indexes {
+    (codigo) [unique, name: 'niveles_fidelizacion_codigo_unique']
+    (orden) [unique, name: 'niveles_fidelizacion_orden_unique']
+  }
+}
+
+Table notas_cita {
+  id_cita "bigint unsigned" [not null, pk]
+  descripcion_tratamiento "text" [null]
+  observaciones "text" [null]
+}
+
+Table notificaciones {
+  id "bigint unsigned" [not null, pk, increment]
+  id_cita "bigint unsigned" [not null]
+  id_historial_cita "bigint unsigned" [null]
+  revision_cita "int unsigned" [not null]
+  clave_deduplicacion "varchar(255)" [not null]
+  tipo "varchar(255)" [not null]
+  canal "varchar(255)" [null]
+  fecha_programada "datetime" [not null]
+  fecha_envio "datetime" [null]
+  estado "varchar(255)" [not null]
+  indexes {
+    (clave_deduplicacion) [unique, name: 'notificaciones_clave_deduplicacion_unique']
+    (estado, fecha_programada) [name: 'notificaciones_estado_fecha_programada_index']
+    (id_historial_cita, id_cita, revision_cita) [name: 'notificaciones_historial_cita_foreign']
+    (id_cita) [name: 'notificaciones_id_cita_foreign']
+    (id_historial_cita) [name: 'notificaciones_id_evento_cita_foreign']
+  }
+}
+
+Table personal_access_tokens {
+  id "bigint unsigned" [not null, pk, increment]
+  tokenable_type "varchar(255)" [not null]
+  tokenable_id "bigint unsigned" [not null]
+  name "text" [not null]
+  token "varchar(64)" [not null]
+  abilities "text" [null]
+  last_used_at "timestamp" [null]
+  expires_at "timestamp" [null]
+  created_at "timestamp" [null]
+  updated_at "timestamp" [null]
+  indexes {
+    (expires_at) [name: 'personal_access_tokens_expires_at_index']
+    (token) [unique, name: 'personal_access_tokens_token_unique']
+    (tokenable_type, tokenable_id) [name: 'personal_access_tokens_tokenable_type_tokenable_id_index']
+  }
+}
+
+Table personas {
+  id "bigint unsigned" [not null, pk, increment]
+  dni "varchar(8)" [null]
+  telefono "varchar(30)" [null]
+  correo_contacto "varchar(255)" [null]
+  nombre "varchar(100)" [not null]
+  apellido_paterno "varchar(100)" [not null]
+  apellido_materno "varchar(100)" [null]
+  fecha_creacion "timestamp" [null]
+  fecha_actualizacion "timestamp" [null]
+  indexes {
+    (dni) [unique, name: 'personas_dni_unique']
+  }
+}
+
+Table roles {
+  id "bigint unsigned" [not null, pk, increment]
+  codigo "varchar(255)" [not null]
+  nombre "varchar(255)" [not null]
+  indexes {
+    (codigo) [unique, name: 'roles_codigo_unique']
+  }
+}
+
+Table roles_usuario {
+  id_usuario "bigint unsigned" [not null]
+  id_rol "bigint unsigned" [not null]
+  indexes {
+    (id_usuario, id_rol) [pk, name: 'primary']
+    (id_rol) [name: 'roles_usuario_id_rol_foreign']
+  }
+}
+
+Table servicios {
+  id "bigint unsigned" [not null, pk, increment]
+  nombre "varchar(255)" [not null]
+  precio "decimal(12,2)" [not null]
+  duracion_minutos "smallint unsigned" [not null]
+  descripcion "text" [null]
+  imagen_ruta "varchar(255)" [null]
+  visible_al_publico "tinyint(1)" [not null]
+  activo "tinyint(1)" [not null]
+  fecha_creacion "timestamp" [null]
+  fecha_actualizacion "timestamp" [null]
+}
+
+Table servicios_cita {
+  id "bigint unsigned" [not null, pk, increment]
+  id_cita "bigint unsigned" [not null]
+  id_servicio "bigint unsigned" [not null]
+  id_nivel "bigint unsigned" [null]
+  id_empleado "bigint unsigned" [not null]
+  nombre_servicio_acordado "varchar(255)" [not null]
+  precio_lista "decimal(12,2)" [not null]
+  monto_descuento_automatico "decimal(12,2)" [not null]
+  precio_acordado "decimal(12,2)" [not null]
+  duracion_minutos "smallint unsigned" [not null]
+  motivo_estado_servicio "text" [null]
+  hora_inicio "time" [not null]
+  fecha_inicio_real "datetime" [null]
+  fecha_finalizacion "datetime" [null]
+  estado_servicio "enum('pendiente','en_proceso','realizado','cancelado','no_realizado')" [not null]
+  indexes {
+    (id_cita) [name: 'servicios_cita_cita_index']
+    (id_empleado, hora_inicio, estado_servicio, id_cita) [name: 'servicios_cita_empleado_horario']
+    (id_nivel) [name: 'servicios_cita_id_nivel_foreign']
+    (id_servicio) [name: 'servicios_cita_id_servicio_foreign']
+  }
+}
+
+Table servicios_por_empleado {
+  id_empleado "bigint unsigned" [not null]
+  id_servicio "bigint unsigned" [not null]
+  activo "tinyint(1)" [not null]
+  indexes {
+    (id_empleado, id_servicio) [pk, name: 'primary']
+    (id_servicio) [name: 'servicios_por_empleado_id_servicio_foreign']
+  }
+}
+
+Table sessions {
+  id "varchar(255)" [not null, pk]
+  user_id "bigint unsigned" [null]
+  ip_address "varchar(45)" [null]
+  user_agent "text" [null]
+  payload "longtext" [not null]
+  last_activity "int" [not null]
+  indexes {
+    (last_activity) [name: 'sessions_last_activity_index']
+    (user_id) [name: 'sessions_user_id_index']
+  }
+}
+
+Table usuarios {
+  id "bigint unsigned" [not null, pk, increment]
+  id_persona "bigint unsigned" [not null]
+  correo "varchar(255)" [not null]
+  fecha_verificacion_correo "timestamp" [null]
+  contrasena "varchar(255)" [not null]
+  version_sesion "int unsigned" [not null]
+  secreto_segundo_factor "text" [null]
+  codigos_respaldo_mfa "text" [null]
+  fecha_confirmacion_mfa "timestamp" [null]
+  activo "tinyint(1)" [not null]
+  fecha_creacion "timestamp" [null]
+  fecha_actualizacion "timestamp" [null]
+  indexes {
+    (correo) [unique, name: 'users_email_unique']
+    (id_persona) [unique, name: 'users_id_persona_unique']
+  }
+}
+
+Ref: asignaciones_insumos.id_empleado > empleados.id
+Ref: asignaciones_insumos.id_insumo > insumos.id
+Ref: citas.id_cliente > clientes.id
+Ref: citas.id_usuario_creador > usuarios.id
+Ref: clientes.id_persona - personas.id
+Ref: cobros.id_cita > citas.id
+Ref: cobros.id_metodo_pago > metodos_pago.id
+Ref: cobros.id_usuario_creador > usuarios.id
+Ref: descuentos_manuales_cita.id_motivo_descuento > motivos_descuento.id
+Ref: descuentos_manuales_cita.id_servicio_cita - servicios_cita.id
+Ref: descuentos_manuales_cita.id_usuario > usuarios.id
+Ref: empleados.id_usuario - usuarios.id
+Ref: historial_cita.id_cita > citas.id
+Ref: historial_cita.id_usuario_responsable > usuarios.id
+Ref: horarios_estudio.id_estudio > configuracion_estudio.id
+Ref: insumos.id_categoria > categorias_inventario.id
+Ref: jornadas_empleados.id_empleado > empleados.id
+Ref: movimientos_inventario.id_asignacion - asignaciones_insumos.id
+Ref: movimientos_inventario.id_insumo > insumos.id
+Ref: movimientos_inventario.id_usuario_creador > usuarios.id
+Ref: movimientos_puntos.id_cliente > clientes.id
+Ref: movimientos_puntos.id_cobro - cobros.id
+Ref: movimientos_puntos.id_usuario_creador > usuarios.id
+Ref: notas_cita.id_cita - citas.id
+Ref: notificaciones.(id_historial_cita, id_cita, revision_cita) > historial_cita.(id, id_cita, numero_revision)
+Ref: notificaciones.id_cita > citas.id
+Ref: roles_usuario.id_rol > roles.id
+Ref: roles_usuario.id_usuario > usuarios.id
+Ref: servicios_cita.id_empleado > empleados.id
+Ref: servicios_cita.id_cita > citas.id
+Ref: servicios_cita.id_nivel > niveles_fidelizacion.id
+Ref: servicios_cita.id_servicio > servicios.id
+Ref: servicios_por_empleado.id_empleado > empleados.id
+Ref: servicios_por_empleado.id_servicio > servicios.id
+Ref: usuarios.id_persona - personas.id
