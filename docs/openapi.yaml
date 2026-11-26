@@ -1116,6 +1116,88 @@ paths:
           schema:
             type: "integer"
             minimum: 1
+  "/estilistas":
+    get:
+      operationId: "get__estilistas"
+      summary: "Consultar estilistas públicas"
+      tags:
+        - "agenda"
+      description: "Público. Devuelve estilistas activas que admiten reservas con sus servicios públicos habilitados."
+      security: []
+      "x-permisos": "Público."
+      responses:
+        "200":
+          description: "Operación correcta"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  datos:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "integer"
+                        nombre_completo:
+                          type: "string"
+                        cargo:
+                          type: "string"
+                        imagen_url:
+                          anyOf:
+                            -
+                              type: "string"
+                            -
+                              type: "null"
+                        ids_servicios:
+                          type: "array"
+                          items:
+                            type: "integer"
+                      required:
+                        - "id"
+                        - "nombre_completo"
+                        - "cargo"
+                        - "imagen_url"
+                        - "ids_servicios"
+                required:
+                  - "datos"
+        "500":
+          description: "Error interno sin detalles sensibles."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/estilistas/{id}/imagen":
+    get:
+      operationId: "get__estilistas_id_imagen"
+      summary: "Obtener fotografía de una estilista"
+      tags:
+        - "agenda"
+      description: "Público para estilistas activas que admiten reservas; Administración puede ver cualquiera."
+      security: []
+      "x-permisos": "Público para estilistas activas que admiten reservas."
+      parameters:
+        -
+          name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+      responses:
+        "200":
+          description: "Archivo de imagen de la estilista."
+          content:
+            "image/jpeg": {}
+            "image/png": {}
+            "image/webp": {}
+        "404":
+          description: "Estilista o imagen inexistente."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/disponibilidad":
     get:
       operationId: "get__disponibilidad"
@@ -3017,6 +3099,63 @@ paths:
           "application/json":
             schema:
               "$ref": "#/components/schemas/EmpleadoActualizacion"
+    delete:
+      operationId: "delete__empleados_id"
+      summary: "Eliminar personal"
+      tags:
+        - "personal"
+      description: "Administración, sesión web con MFA configurado y verificado en la sesión actual. Solo permite eliminar cuentas sin historial asociado y distintas a la propia."
+      security:
+        -
+          sesionWeb: []
+      "x-permisos": "Administración, sesión web con MFA configurado y verificado en la sesión actual."
+      parameters:
+        -
+          name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+        -
+          name: "X-XSRF-TOKEN"
+          in: "header"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "204":
+          description: "Registro de personal eliminado correctamente."
+        "401":
+          description: "Sesión o token ausente, inválido o expirado."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "403":
+          description: "Rol, propietario, acceso activo, MFA o tipo de cliente no autorizado."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "404":
+          description: "Registro inexistente."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "409":
+          description: "No se puede eliminar porque es tu propia cuenta o tiene historial asociado."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "419":
+          description: "CSRF inválido o expirado en una petición web."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/empleados/{id}/cuenta":
     patch:
       operationId: "patch__empleados_id_cuenta"
@@ -3909,6 +4048,63 @@ paths:
                       type: "null"
                 activo:
                   type: "boolean"
+    delete:
+      operationId: "delete__clientes_id"
+      summary: "Eliminar ficha de cliente"
+      tags:
+        - "clientes"
+      description: "Administración o recepción. Solo permite eliminar clientes sin citas, sin movimientos de puntos y sin cuenta de acceso vinculada."
+      security:
+        -
+          sesionWeb: []
+      "x-permisos": "Administración o recepción por sesión web."
+      parameters:
+        -
+          name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+        -
+          name: "X-XSRF-TOKEN"
+          in: "header"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "204":
+          description: "Ficha de cliente eliminada correctamente."
+        "401":
+          description: "Sesión o token ausente, inválido o expirado."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "403":
+          description: "Rol, propietario, acceso activo, MFA o tipo de cliente no autorizado."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "404":
+          description: "Registro inexistente."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "409":
+          description: "No se puede eliminar porque tiene citas, puntos o una cuenta de acceso vinculada."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "419":
+          description: "CSRF inválido o expirado en una petición web."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/clientes/{id}/historial":
     get:
       operationId: "get__clientes_id_historial"
@@ -4466,6 +4662,76 @@ paths:
                 _method:
                   type: "string"
                   const: "PATCH"
+    delete:
+      operationId: "delete__administracion_servicios_id"
+      summary: "Eliminar servicio"
+      tags:
+        - "administracion"
+      description: "Administración, sesión web con MFA configurado y verificado en la sesión actual. Solo permite eliminar servicios sin citas registradas."
+      security:
+        -
+          sesionWeb: []
+      "x-permisos": "Administración, sesión web con MFA configurado y verificado en la sesión actual."
+      responses:
+        "204":
+          description: "Servicio eliminado correctamente."
+        "401":
+          description: "Sesión o token ausente, inválido o expirado."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "403":
+          description: "Rol, propietario, acceso activo, MFA o tipo de cliente no autorizado."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "404":
+          description: "Registro inexistente."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "409":
+          description: "No se puede eliminar porque el servicio tiene citas registradas."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "419":
+          description: "CSRF inválido o expirado en una petición web."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "429":
+          description: "Demasiados intentos."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "500":
+          description: "Error interno sin detalles sensibles."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+      parameters:
+        -
+          name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+        -
+          name: "X-XSRF-TOKEN"
+          in: "header"
+          required: false
+          schema:
+            type: "string"
+          description: "Valor vigente de la cookie XSRF-TOKEN para escrituras por sesión web."
   "/configuracion/estudio":
     get:
       operationId: "get__configuracion_estudio"
@@ -5930,6 +6196,63 @@ paths:
                   minimum: 0
                 activo:
                   type: "boolean"
+    delete:
+      operationId: "delete__inventario_insumos_id"
+      summary: "Eliminar insumo"
+      tags:
+        - "inventario"
+      description: "Administración, sesión web con MFA configurado y verificado en la sesión actual. Solo permite eliminar insumos sin movimientos ni asignaciones."
+      security:
+        -
+          sesionWeb: []
+      "x-permisos": "Administración, sesión web con MFA configurado y verificado en la sesión actual."
+      parameters:
+        -
+          name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            minimum: 1
+        -
+          name: "X-XSRF-TOKEN"
+          in: "header"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "204":
+          description: "Insumo eliminado correctamente."
+        "401":
+          description: "Sesión o token ausente, inválido o expirado."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "403":
+          description: "Rol, propietario, acceso activo, MFA o tipo de cliente no autorizado."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "404":
+          description: "Registro inexistente."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "409":
+          description: "No se puede eliminar porque el insumo tiene movimientos o asignaciones registradas."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+        "419":
+          description: "CSRF inválido o expirado en una petición web."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/inventario/movimientos":
     get:
       operationId: "get__inventario_movimientos"

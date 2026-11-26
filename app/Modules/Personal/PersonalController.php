@@ -14,8 +14,11 @@ use App\Models\User;
 use App\Modules\Agenda\CitaResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class PersonalController extends Controller
 {
@@ -38,6 +41,7 @@ class PersonalController extends Controller
             'cargo' => $e->cargo,
             'activo' => $e->activo,
             'admite_reservas' => $e->admite_reservas,
+            'imagen_url' => $e->imagen_url,
             'cuenta' => $e->usuario->perfil(),
             'jornada' => $e->jornada,
             'servicios' => $e->servicios,
@@ -104,21 +108,94 @@ class PersonalController extends Controller
             'cargo' => 'sometimes|required|string|max:255',
             'activo' => 'sometimes|boolean',
             'admite_reservas' => 'sometimes|boolean',
+            'imagen' => 'sometimes|nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'eliminar_imagen' => 'sometimes|boolean',
+        ], [
+            'imagen.image' => 'Seleccione una imagen JPG, PNG o WebP válida.',
+            'imagen.mimes' => 'La imagen debe ser JPEG, PNG o WebP.',
+            'imagen.max' => 'La imagen no debe superar los 2 MB.',
+            'imagen.uploaded' => 'La imagen supera el límite de carga del servidor.',
         ]);
-        DB::transaction(function () use ($e, $d) {
-            $e = Empleado::lockForUpdate()->findOrFail($e->id);
-            $datosPersona = collect($d)->only(['nombre', 'apellido_paterno', 'apellido_materno', 'telefono', 'correo_contacto'])->all();
-            if ($datosPersona) {
-                $e->usuario->persona->update($datosPersona);
+        if ($r->hasFile('imagen') && $r->boolean('eliminar_imagen')) {
+            throw ValidationException::withMessages(['imagen' => ['Seleccione una imagen nueva o elimine la actual.']]);
+        }
+        $nuevaRuta = $r->hasFile('imagen') ? $r->file('imagen')->store('estilistas', 'public') : null;
+        abort_if($nuevaRuta === false, 500, 'No se pudo almacenar la imagen.');
+        try {
+            DB::transaction(function () use ($e, $d, $r, $nuevaRuta) {
+                $e = Empleado::lockForUpdate()->findOrFail($e->id);
+                $anterior = $e->imagen_ruta;
+                $datosPersona = collect($d)->only(['nombre', 'apellido_paterno', 'apellido_materno', 'telefono', 'correo_contacto'])->all();
+                if ($datosPersona) {
+                    $e->usuario->persona->update($datosPersona);
+                }
+                $datosEmpleado = collect($d)->only(['cargo', 'activo', 'admite_reservas'])->all();
+                if ($nuevaRuta || $r->boolean('eliminar_imagen')) {
+                    $datosEmpleado['imagen_ruta'] = $nuevaRuta;
+                }
+                if ($datosEmpleado) {
+                    $e->update($datosEmpleado);
+                }
+                abort_if($e->admite_reservas && ! $e->usuario->es('estilista'), 422, 'Solo estilistas admiten reservas.');
+                if ($anterior && $anterior !== $e->imagen_ruta) {
+                    DB::afterCommit(fn () => $this->eliminarImagen($anterior));
+                }
+            }, 3);
+        } catch (Throwable $error) {
+            if ($nuevaRuta) {
+                $this->eliminarImagen($nuevaRuta);
             }
-            $datosEmpleado = collect($d)->only(['cargo', 'activo', 'admite_reservas'])->all();
-            if ($datosEmpleado) {
-                $e->update($datosEmpleado);
-            }
-            abort_if($e->admite_reservas && ! $e->usuario->es('estilista'), 422, 'Solo estilistas admiten reservas.');
-        });
+            throw $error;
+        }
 
         return ['datos' => $this->presentar($e->fresh(['usuario.persona.cliente', 'usuario.roles', 'jornada', 'servicios']))];
+    }
+
+    public function eliminar(Request $r, int $id)
+    {
+        DB::transaction(function () use ($r, $id) {
+            $e = Empleado::with('usuario')->lockForUpdate()->findOrFail($id);
+            if ($e->id_usuario === $r->user()->id) {
+                abort(409, 'No puedes eliminar tu propia cuenta.');
+            }
+            $tieneHistorial = ServicioCita::where('id_empleado', $e->id)->exists()
+                || DB::table('asignaciones_insumos')->where('id_empleado', $e->id)->exists()
+                || Cita::where('id_usuario_creador', $e->id_usuario)->exists()
+                || DB::table('cobros')->where('id_usuario_creador', $e->id_usuario)->exists()
+                || DB::table('descuentos_manuales_cita')->where('id_usuario', $e->id_usuario)->exists()
+                || DB::table('historial_cita')->where('id_usuario_responsable', $e->id_usuario)->exists()
+                || DB::table('movimientos_inventario')->where('id_usuario_creador', $e->id_usuario)->exists()
+                || DB::table('movimientos_puntos')->where('id_usuario_creador', $e->id_usuario)->exists();
+            if ($tieneHistorial) {
+                abort(409, 'No se puede eliminar este registro porque tiene citas, cobros o movimientos asociados. Puedes desactivar su perfil y acceso.');
+            }
+            $imagen = $e->imagen_ruta;
+            $usuario = $e->usuario;
+            $personaId = $usuario->id_persona;
+            JornadaEmpleado::where('id_empleado', $e->id)->delete();
+            DB::table('servicios_por_empleado')->where('id_empleado', $e->id)->delete();
+            $e->delete();
+            $usuario->tokens()->delete();
+            $usuario->roles()->detach();
+            $usuario->delete();
+            if (! DB::table('clientes')->where('id_persona', $personaId)->exists()) {
+                Persona::where('id', $personaId)->delete();
+            }
+            if ($imagen) {
+                DB::afterCommit(fn () => $this->eliminarImagen($imagen));
+            }
+        }, 3);
+
+        return response()->noContent();
+    }
+
+    private function eliminarImagen(string $ruta): void
+    {
+        try {
+            Storage::disk('public')->delete($ruta);
+        } catch (Throwable $error) {
+            report($error);
+        }
     }
 
     public function cuenta(Request $r, int $id)

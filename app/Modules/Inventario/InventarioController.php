@@ -9,6 +9,7 @@ use App\Models\Insumo;
 use App\Models\MovimientoInventario;
 use App\Support\Api;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class InventarioController extends Controller
 {
@@ -42,6 +43,21 @@ class InventarioController extends Controller
         $i->fill($d)->save();
 
         return response()->json(['datos' => $i->fresh('categoria')], $id ? 200 : 201);
+    }
+
+    public function eliminarInsumo(int $id)
+    {
+        DB::transaction(function () use ($id) {
+            $i = Insumo::lockForUpdate()->findOrFail($id);
+            $tieneHistorial = MovimientoInventario::where('id_insumo', $i->id)->exists()
+                || AsignacionInsumo::where('id_insumo', $i->id)->exists();
+            if ($tieneHistorial) {
+                abort(409, 'No se puede eliminar este insumo porque tiene movimientos o asignaciones registradas. Puedes desactivarlo.');
+            }
+            $i->delete();
+        }, 3);
+
+        return response()->noContent();
     }
 
     public function movimientos(Request $r)

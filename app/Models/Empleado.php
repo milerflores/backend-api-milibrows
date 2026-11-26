@@ -12,11 +12,22 @@ class Empleado extends Model
 
     protected $attributes = ['activo' => true, 'admite_reservas' => false];
 
+    protected $hidden = ['imagen_ruta'];
+
+    protected $appends = ['imagen_url'];
+
     public const CREATED_AT = 'fecha_creacion';
 
     public const UPDATED_AT = 'fecha_actualizacion';
 
     public $timestamps = true;
+
+    public function getImagenUrlAttribute(): ?string
+    {
+        return $this->imagen_ruta
+            ? '/api/v1/estilistas/'.$this->id.'/imagen?v='.sha1($this->imagen_ruta)
+            : null;
+    }
 
     protected function casts(): array
     {

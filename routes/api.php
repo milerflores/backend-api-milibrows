@@ -15,6 +15,8 @@ use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 Route::prefix('v1')->group(function () {
     Route::get('servicios', [Agenda::class, 'catalogo']);
     Route::get('servicios/{id}/imagen', [Agenda::class, 'imagen'])->whereNumber('id');
+    Route::get('estilistas', [Agenda::class, 'estilistas']);
+    Route::get('estilistas/{id}/imagen', [Agenda::class, 'imagenEstilista'])->whereNumber('id');
     Route::get('disponibilidad', [Agenda::class, 'disponibilidad'])->middleware('throttle:60,1');
 
     Route::middleware(['auth:sanctum', 'habilitado'])->group(function () {
@@ -40,6 +42,7 @@ Route::prefix('v1')->group(function () {
             Route::post('clientes', [Clientes::class, 'crear']);
             Route::get('clientes/{id}', [Clientes::class, 'detalle'])->whereNumber('id');
             Route::patch('clientes/{id}', [Clientes::class, 'actualizar'])->whereNumber('id');
+            Route::delete('clientes/{id}', [Clientes::class, 'eliminar'])->whereNumber('id');
             Route::get('clientes/{id}/historial', [Clientes::class, 'historial'])->whereNumber('id');
             Route::get('clientes/{id}/fidelizacion', [Clientes::class, 'fidelizacion'])->whereNumber('id');
         });
@@ -48,6 +51,7 @@ Route::prefix('v1')->group(function () {
             Route::get('administracion/servicios', [Administracion::class, 'servicios']);
             Route::post('administracion/servicios', [Administracion::class, 'guardarServicio']);
             Route::patch('administracion/servicios/{id}', [Administracion::class, 'guardarServicio'])->whereNumber('id');
+            Route::delete('administracion/servicios/{id}', [Administracion::class, 'eliminarServicio'])->whereNumber('id');
             Route::get('configuracion/estudio', [Administracion::class, 'configuracion']);
             Route::put('configuracion/estudio', [Administracion::class, 'guardarConfiguracion']);
             Route::get('configuracion/horario-estudio', [Administracion::class, 'horario']);
@@ -60,6 +64,7 @@ Route::prefix('v1')->group(function () {
             Route::post('inventario/insumos', [Inventario::class, 'guardarInsumo']);
             Route::get('inventario/insumos/{id}', [Inventario::class, 'detalle'])->whereNumber('id');
             Route::patch('inventario/insumos/{id}', [Inventario::class, 'guardarInsumo'])->whereNumber('id');
+            Route::delete('inventario/insumos/{id}', [Inventario::class, 'eliminarInsumo'])->whereNumber('id');
             Route::get('inventario/movimientos', [Inventario::class, 'movimientos']);
             Route::post('inventario/movimientos', [Inventario::class, 'mover']);
             Route::post('inventario/asignaciones', [Inventario::class, 'asignar']);
@@ -73,6 +78,7 @@ Route::prefix('v1')->group(function () {
             Route::post('empleados', [Personal::class, 'crear']);
             Route::get('empleados/{id}', [Personal::class, 'detalle'])->whereNumber('id');
             Route::patch('empleados/{id}', [Personal::class, 'actualizar'])->whereNumber('id');
+            Route::delete('empleados/{id}', [Personal::class, 'eliminar'])->whereNumber('id');
             Route::patch('empleados/{id}/cuenta', [Personal::class, 'cuenta'])->whereNumber('id');
             Route::put('empleados/{id}/cuenta/contrasena', [Personal::class, 'contrasena'])->whereNumber('id');
             foreach (['jornada', 'servicios'] as $accion) {

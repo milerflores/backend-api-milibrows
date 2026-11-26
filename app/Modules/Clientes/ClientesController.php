@@ -115,6 +115,26 @@ class ClientesController extends Controller
         return ['datos' => $c->fresh('persona')];
     }
 
+    public function eliminar(int $id)
+    {
+        DB::transaction(function () use ($id) {
+            $c = Cliente::lockForUpdate()->findOrFail($id);
+            $tieneHistorial = DB::table('citas')->where('id_cliente', $c->id)->exists()
+                || DB::table('movimientos_puntos')->where('id_cliente', $c->id)->exists();
+            if ($tieneHistorial) {
+                abort(409, 'No se puede eliminar esta cliente porque tiene citas o movimientos de puntos registrados.');
+            }
+            if (DB::table('usuarios')->where('id_persona', $c->id_persona)->exists()) {
+                abort(409, 'No se puede eliminar esta cliente porque tiene una cuenta de acceso vinculada.');
+            }
+            $personaId = $c->id_persona;
+            $c->delete();
+            Persona::where('id', $personaId)->delete();
+        }, 3);
+
+        return response()->noContent();
+    }
+
     public function historial(Request $r, ?int $id = null)
     {
         $id ??= $r->user()->idCliente();

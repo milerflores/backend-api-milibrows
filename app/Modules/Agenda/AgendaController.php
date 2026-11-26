@@ -4,6 +4,7 @@ namespace App\Modules\Agenda;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cita;
+use App\Models\Empleado;
 use App\Models\Servicio;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -15,6 +16,44 @@ class AgendaController extends Controller
     public function catalogo()
     {
         return ['datos' => Servicio::where('activo', true)->where('visible_al_publico', true)->orderBy('nombre')->get()];
+    }
+
+    public function estilistas()
+    {
+        $empleados = Empleado::with(['usuario.roles', 'usuario.persona', 'servicios'])
+            ->where('activo', true)
+            ->where('admite_reservas', true)
+            ->get()
+            ->filter(fn (Empleado $e) => $e->usuario?->activo && $e->usuario->es('estilista'))
+            ->sortBy(fn (Empleado $e) => $e->usuario?->persona?->nombre_completo ?? '')
+            ->values()
+            ->map(fn (Empleado $e) => [
+                'id' => $e->id,
+                'nombre_completo' => $e->usuario->persona?->nombre_completo ?? $e->cargo,
+                'cargo' => $e->cargo,
+                'imagen_url' => $e->imagen_url,
+                'ids_servicios' => $e->servicios
+                    ->filter(fn (Servicio $s) => $s->activo && $s->visible_al_publico && (bool) ($s->pivot->activo ?? false))
+                    ->pluck('id')
+                    ->values()
+                    ->all(),
+            ]);
+
+        return ['datos' => $empleados];
+    }
+
+    public function imagenEstilista(Request $r, int $id)
+    {
+        $e = Empleado::with('usuario.roles')->findOrFail($id);
+        $esAdmin = $r->user('sanctum')?->es('administracion') ?? false;
+        $esPublica = $e->activo && $e->admite_reservas && ($e->usuario?->activo ?? false) && $e->usuario->es('estilista');
+        abort_unless($esAdmin || $esPublica, 404);
+        abort_unless($e->imagen_ruta && Storage::disk('public')->exists($e->imagen_ruta), 404);
+
+        return Storage::disk('public')->response($e->imagen_ruta, null, [
+            'Cache-Control' => 'public, max-age=3600',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function imagen(Request $r, int $id)

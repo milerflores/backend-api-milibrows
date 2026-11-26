@@ -78,6 +78,24 @@ class AdministracionController extends Controller
         return response()->json(['datos' => $s->fresh()], $id ? 200 : 201);
     }
 
+    public function eliminarServicio(int $id)
+    {
+        DB::transaction(function () use ($id) {
+            $s = Servicio::lockForUpdate()->findOrFail($id);
+            if (ServicioCita::where('id_servicio', $s->id)->exists()) {
+                abort(409, 'No se puede eliminar este servicio porque tiene citas registradas. Puedes desactivarlo para ocultarlo.');
+            }
+            $imagen = $s->imagen_ruta;
+            DB::table('servicios_por_empleado')->where('id_servicio', $s->id)->delete();
+            $s->delete();
+            if ($imagen) {
+                DB::afterCommit(fn () => $this->eliminarImagen($imagen));
+            }
+        }, 3);
+
+        return response()->noContent();
+    }
+
     private function eliminarImagen(string $ruta): void
     {
         try {
